@@ -9,7 +9,7 @@ OUT := $(shell pwd)/_out
 
 KUBEBUILDER_VERSION=1.28.0
 
-HELM_FILES := $(shell find deploy/example-webhook)
+HELM_FILES := $(shell find deploy/cert-manager-alidns-webhook)
 
 test: _test/kubebuilder-$(KUBEBUILDER_VERSION)-$(OS)-$(ARCH)/etcd _test/kubebuilder-$(KUBEBUILDER_VERSION)-$(OS)-$(ARCH)/kube-apiserver _test/kubebuilder-$(KUBEBUILDER_VERSION)-$(OS)-$(ARCH)/kubectl
 	TEST_ASSET_ETCD=_test/kubebuilder-$(KUBEBUILDER_VERSION)-$(OS)-$(ARCH)/etcd \
@@ -36,10 +36,10 @@ rendered-manifest.yaml: $(OUT)/rendered-manifest.yaml
 
 $(OUT)/rendered-manifest.yaml: $(HELM_FILES) | $(OUT)
 	helm template \
-	    --name example-webhook \
+	    --name cert-manager-alidns-webhook \
             --set image.repository=$(IMAGE_NAME) \
             --set image.tag=$(IMAGE_TAG) \
-            deploy/example-webhook > $@
+            deploy/cert-manager-alidns-webhook > $@
 
 _test $(OUT) _test/kubebuilder-$(KUBEBUILDER_VERSION)-$(OS)-$(ARCH):
 	mkdir -p $@

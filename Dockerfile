@@ -1,24 +1,29 @@
-FROM golang:1.23-alpine3.19@sha256:5f3336882ad15d10ac1b59fbaba7cb84c35d4623774198b36ae60edeba45fd84 AS build_deps
-
-RUN apk add --no-cache git
+# Build stage
+FROM golang:1.25.3 AS build
 
 WORKDIR /workspace
 
-COPY go.mod .
-COPY go.sum .
-
+# Download dependencies
+COPY go.mod go.sum ./
 RUN go mod download
 
-FROM build_deps AS build
-
+# Build the webhook binary
 COPY . .
+RUN CGO_ENABLED=0 go build \
+    -ldflags '-w -extldflags "-static"' \
+    -o cert-manager-alidns-webhook .
 
-RUN CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
-
-FROM alpine:3.23@sha256:865b95f46d98cf867a156fe4a135ad3fe50d2056aa3f25ed31662dff6da4eb62
+# Final stage
+FROM alpine:3.23
 
 RUN apk add --no-cache ca-certificates
 
-COPY --from=build /workspace/webhook /usr/local/bin/webhook
+# Non-root user
+RUN addgroup -g 1000 cert-manager && \
+    adduser -u 1000 -G cert-manager -D -h /home/cert-manager cert-manager
 
-ENTRYPOINT ["webhook"]
+USER cert-manager
+
+COPY --from=build /workspace/cert-manager-alidns-webhook /usr/local/bin/cert-manager-alidns-webhook
+
+ENTRYPOINT ["/usr/local/bin/cert-manager-alidns-webhook"]

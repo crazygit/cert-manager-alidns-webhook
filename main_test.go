@@ -5,8 +5,7 @@ import (
 	"testing"
 
 	acmetest "github.com/cert-manager/cert-manager/test/acme"
-
-	"github.com/cert-manager/webhook-example/example"
+	"github.com/crazygit/cert-manager-alidns-webhook/pkg/alidns"
 )
 
 var (
@@ -26,12 +25,16 @@ func TestRunsSuite(t *testing.T) {
 	//	acmetest.SetManifestPath("testdata/my-custom-solver"),
 	//	acmetest.SetBinariesPath("_test/kubebuilder/bin"),
 	//)
-	solver := example.New("59351")
+	dnsProvider, err := alidns.NewDNSProvider()
+	if err != nil {
+		panic("failed to create dns provider")
+	}
+	solver := alidns.NewSolver(dnsProvider)
+
 	fixture := acmetest.NewFixture(solver,
-		acmetest.SetResolvedZone("example.com."),
+		acmetest.SetResolvedZone(zone),
 		acmetest.SetManifestPath("testdata/my-custom-solver"),
-		acmetest.SetDNSServer("127.0.0.1:59351"),
-		acmetest.SetUseAuthoritative(false),
+		acmetest.SetDNSServer("223.5.5.5:53"),
 	)
 	//need to uncomment and  RunConformance delete runBasic and runExtended once https://github.com/cert-manager/cert-manager/pull/4835 is merged
 	//fixture.RunConformance(t)

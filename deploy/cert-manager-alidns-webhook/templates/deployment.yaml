@@ -1,0 +1,112 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cert-manager-alidns-webhook.fullname" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app: {{ include "cert-manager-alidns-webhook.name" . }}
+    chart: {{ include "cert-manager-alidns-webhook.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "cert-manager-alidns-webhook.name" . }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "cert-manager-alidns-webhook.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ include "cert-manager-alidns-webhook.fullname" . }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - --tls-cert-file=/tls/tls.crt
+            - --tls-private-key-file=/tls/tls.key
+          env:
+            # GROUP_NAME - cert-manager webhook API group
+            - name: GROUP_NAME
+              value: {{ .Values.groupName | quote }}
+            {{- /* 环境变量 REGION_ID */}}
+
+            {{- if .Values.aliyunAuth.regionID }}
+            - name: ALIBABA_CLOUD_REGION_ID
+              value: {{ .Values.aliyunAuth.regionID | quote }}
+            {{- end }}
+
+            {{- /* 方式1: 环境变量 AK/SK */}}
+            {{- if .Values.aliyunAuth.accessKeyID }}
+            - name: ALIBABA_CLOUD_ACCESS_KEY_ID
+              value: {{ .Values.aliyunAuth.accessKeyID | quote }}
+            {{- end }}
+            {{- if .Values.aliyunAuth.accessKeySecret }}
+            - name: ALIBABA_CLOUD_ACCESS_KEY_SECRET
+              value: {{ .Values.aliyunAuth.accessKeySecret | quote }}
+            {{- end }}
+
+            {{- /* 方式2: 从 Secret 引用 AK/SK */}}
+            {{- if .Values.aliyunAuth.existingSecret }}
+            - name: ALIBABA_CLOUD_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.aliyunAuth.existingSecret | quote }}
+                  key: accessKeyID
+            - name: ALIBABA_CLOUD_ACCESS_KEY_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.aliyunAuth.existingSecret | quote }}
+                  key: accessKeySecret
+            {{- end }}
+          ports:
+            - name: https
+              containerPort: 443
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              scheme: HTTPS
+              path: /healthz
+              port: https
+          readinessProbe:
+            httpGet:
+              scheme: HTTPS
+              path: /healthz
+              port: https
+          volumeMounts:
+            - name: certs
+              mountPath: /tls
+              readOnly: true
+            {{- /* config.json volume mount */}}
+            {{- if .Values.aliyunAuth.configJSON.enabled }}
+            - name: aliyun-config
+              mountPath: /root/.aliyun
+              readOnly: true
+            {{- end }}
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+      volumes:
+        - name: certs
+          secret:
+            secretName: {{ include "cert-manager-alidns-webhook.servingCertificate" . }}
+        {{- /* config.json volume */}}
+        {{- if .Values.aliyunAuth.configJSON.enabled }}
+        - name: aliyun-config
+          configMap:
+            name: {{ .Values.aliyunAuth.configJSON.configMapName | quote }}
+        {{- end }}
+    {{- with .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}

@@ -1,0 +1,25 @@
+apiVersion: v1
+appVersion: "v0.1.0"
+description: |
+  AliDNS Webhook for cert-manager - A cert-manager webhook solver for Alibaba Cloud DNS.
+
+  This webhook enables cert-manager to solve DNS-01 challenges using Alibaba Cloud DNS (AliDNS).
+  It supports multiple authentication methods including RRSA (recommended for production), AccessKey,
+  ECS instance RAM role, and more via the Alibaba Cloud credentials-go default credential chain.
+
+name: cert-manager-alidns-webhook
+version: 0.1.0
+keywords:
+  - cert-manager
+  - alidns
+  - alibaba-cloud
+  - dns01
+  - webhook
+  - acme
+  - letsencrypt
+home: https://github.com/crazygit/cert-manager-alidns-webhook
+sources:
+  - https://github.com/crazygit/cert-manager-alidns-webhook
+maintainers:
+  - name: crazygit
+    email: lianglin999@gmail.com

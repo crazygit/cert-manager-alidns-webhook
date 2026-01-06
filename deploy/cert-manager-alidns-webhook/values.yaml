@@ -1,0 +1,75 @@
+# The groupName avoids naming conflicts on the Kubernetes API, it should be set by the
+# author of the webhook a unique domain that the author owns. For
+# example: some-provider-webhook.mycompany.tld , or
+# some-provider-webhook.mypersonalsite.tld if your webhook is a personal open-source
+# project.
+# Once set to a unique domain name by the webhook author, it does not need to be further
+# adjusted by the users of a webhook chart!
+# The name will need to be referenced in each Issuer's `webhook` stanza to
+# inform cert-manager of where to send ChallengePayload resources in order to
+# solve the DNS01 challenge.
+groupName: alidns.crazygit.github.io
+
+certManager:
+  namespace: cert-manager
+  serviceAccountName: cert-manager
+
+image:
+  repository: crazygit/cert-manager-alidns-webhook
+  tag: latest
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 443
+
+# 阿里云认证配置
+# 支持 credentials-go 默认凭据链的多种认证方式
+# 认证优先级: 环境变量 AK/SK > RRSA > config.json > ECS Role > Credentials URI
+aliyunAuth:
+  # 用于拼接连接阿里云 DNS服务的 Endpoint, 为空时使用默认的 Endpoint, 例如: cn-hangzhou
+  regionID: ""
+
+  # 方式1: 环境变量 AK/SK (开发/测试环境，不推荐生产环境)
+  accessKeyID: "" # 留空则不配置
+  accessKeySecret: "" # 留空则不配置
+
+  # 方式2: 从现有 Secret 引用 AK/SK (推荐用于测试环境)
+  # Secret 需要包含 accessKeyID 和 accessKeySecret 两个字段
+  existingSecret: "" # Secret 名称，留空则不使用
+
+  # 方式3: RRSA - RAM Roles for Service Accounts (推荐生产环境)
+  # 需要集群已配置 OIDC Provider
+  rrsa:
+    enabled: false
+    roleName: "" # 例如: role_name  (注意: 不是 RoleARN 信息)
+  # 方式4: ECS 实例 RAM 角色，不需要任何配置
+  # 方式5: config.json 文件挂载 (可选)
+  # 用于本地开发或特殊场景
+  configJSON:
+    enabled: false
+    configMapName: "" # 包含 config.json 的 ConfigMap 名称
+
+resources:
+  {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
