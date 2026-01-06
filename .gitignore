@@ -18,3 +18,4 @@ cert-manager-webhook-example
 _out
 _test
 *.tgz
+coverage.txt

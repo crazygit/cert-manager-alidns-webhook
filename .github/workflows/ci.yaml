@@ -17,15 +17,25 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.25"
-          cache: true
+          go-version-file: 'go.mod'
 
       - name: Run go vet
         run: go vet ./...
@@ -34,6 +44,7 @@ jobs:
         run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
 
       - name: Upload coverage to Codecov
+        if: success() || failure()
         uses: codecov/codecov-action@v4
         with:
           file: ./coverage.txt
@@ -42,6 +53,7 @@ jobs:
 
   helm-lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Checkout
         uses: actions/checkout@v4
