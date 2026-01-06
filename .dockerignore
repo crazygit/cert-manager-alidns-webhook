@@ -1,0 +1,50 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# CI/CD
+.github
+
+# Documentation
+*.md
+LICENSE
+CLAUDE.md
+DEVELOPMENT.md
+
+# Test files
+*_test.go
+testdata
+_test
+coverage.out
+coverage.txt
+
+# Development
+.claude
+.vscode
+.idea
+
+# Build artifacts
+bin/
+dist/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Dependencies
+vendor/
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Helm Chart
+deploy/
+*.yaml
+*.yml
+
+# OS
+.DS_Store
+Thumbs.db

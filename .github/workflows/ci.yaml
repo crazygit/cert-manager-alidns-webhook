@@ -35,7 +35,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
+          go-version-file: "go.mod"
 
       - name: Run go vet
         run: go vet ./...
@@ -45,9 +45,10 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: success() || failure()
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
-          file: ./coverage.txt
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.txt
           fail_ci_if_error: false
           verbose: true
 
@@ -94,6 +95,10 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Extract version without prefix
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -101,13 +106,16 @@ jobs:
             ## Docker Image
 
             ```bash
-            docker pull ghcr.io/crazygit/cert-manager-alidns-webhook:${{ github.ref_name }}
+            docker pull ghcr.io/crazygit/cert-manager-alidns-webhook:${{ steps.version.outputs.version }}
             ```
 
             ## Helm Chart
 
             ```bash
-            helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook --version ${{ github.ref_name }}
+            helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook \
+              --namespace cert-manager \
+              --create-namespace \
+              --version ${{ steps.version.outputs.version }}
             ```
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

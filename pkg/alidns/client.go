@@ -19,6 +19,13 @@ const (
 	recordType      = "TXT"
 )
 
+// AliDNSClient 定义阿里云 DNS 客户端接口
+type AliDNSClient interface {
+	AddDomainRecordWithOptions(request *alidns.AddDomainRecordRequest, runtime *util.RuntimeOptions) (*alidns.AddDomainRecordResponse, error)
+	DeleteDomainRecordWithOptions(request *alidns.DeleteDomainRecordRequest, runtime *util.RuntimeOptions) (*alidns.DeleteDomainRecordResponse, error)
+	DescribeDomainRecordsWithOptions(request *alidns.DescribeDomainRecordsRequest, runtime *util.RuntimeOptions) (*alidns.DescribeDomainRecordsResponse, error)
+}
+
 type DNSProvider interface {
 	AddTXTRecord(domain, rr, value string) (string, error)
 	DeleteRecordsByKey(domain, rr, value string) error
@@ -26,7 +33,7 @@ type DNSProvider interface {
 
 // dnsProvider 是 AliDNS 的客户端封装
 type dnsProvider struct {
-	client *alidns.Client
+	client AliDNSClient
 }
 
 // DNSProvider defines the interface for DNS operations

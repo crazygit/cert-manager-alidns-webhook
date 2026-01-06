@@ -10,16 +10,17 @@
 
 <p align="center">
   <a href="https://github.com/crazygit/cert-manager-alidns-webhook/actions/workflows/ci.yaml">
-    <img src="https://img.shields.io/github/actions/workflow/status/crazygit/cert-manager-alidns-webhook/ci.yaml?branch=main" alt="CI Status" />
+    <img src="https://img.shields.io/github/actions/workflow/status/crazygit/cert-manager-alidns-webhook/ci.yaml?branch=master" alt="CI Status" />
   </a>
+
   <a href="https://github.com/crazygit/cert-manager-alidns-webhook/releases">
     <img src="https://img.shields.io/github/v/release/crazygit/cert-manager-alidns-webhook" alt="Latest Release" />
   </a>
   <a href="https://github.com/crazygit/cert-manager-alidns-webhook/pkgs/container/cert-manager-alidns-webhook">
     <img src="https://img.shields.io/github/v/release/crazygit/cert-manager-alidns-webhook?include_prereleases&label=ghcr.io" alt="Docker Package" />
   </a>
-  <a href="https://artifacthub.io/packages/helm/crazygit/alidns-webhook">
-    <img src="https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/crazygit/alidns-webhook" alt="Artifact Hub" />
+  <a href="https://codecov.io/github/crazygit/cert-manager-alidns-webhook" >
+    <img src="https://codecov.io/github/crazygit/cert-manager-alidns-webhook/graph/badge.svg?token=SE1CACI9FY"/>
   </a>
   <a href="LICENSE">
     <img src="https://img.shields.io/github/license/crazygit/cert-manager-alidns-webhook" alt="License" />
@@ -51,23 +52,25 @@ Unlike traditional solutions, this project adopts an **Infrastructure as Identit
 
 ### Design Philosophy Comparison
 
-| Feature                 | Traditional Solutions         | This Project                     |
-| :---------------------- | :---------------------------- | :------------------------------- |
-| **Auth Config Location** | In Issuer/ClusterIssuer       | In Webhook Server itself         |
-| **AK/SK Hardcoding**    | Yes (even with Secret)        | **Completely Eliminated**        |
-| **RRSA Support**        | ❌                             | ✅ **Native Support**            |
-| **Configuration Complexity** | High (per Issuer)         | **Low (one-time setup)**         |
-| **Multi-Account**       | Supported                     | Single account (most common case) |
-| **Credential Rotation** | Update all Issuers required   | Automatic                        |
+| Feature                      | Traditional Solutions       | This Project                      |
+| :--------------------------- | :-------------------------- | :-------------------------------- |
+| **Auth Config Location**     | In Issuer/ClusterIssuer     | In Webhook Server itself          |
+| **AK/SK Hardcoding**         | Yes (even with Secret)      | **Completely Eliminated**         |
+| **RRSA Support**             | ❌                          | ✅ **Native Support**             |
+| **Configuration Complexity** | High (per Issuer)           | **Low (one-time setup)**          |
+| **Multi-Account**            | Supported                   | Single account (most common case) |
+| **Credential Rotation**      | Update all Issuers required | Automatic                         |
 
 ### Advantages
 
 1. **Enhanced Security**
+
    - Eliminates static AK/SK hardcoding risks
    - Native support for RRSA (OIDC) short-term tokens
    - Follows cloud-native security best practices
 
 2. **Extreme Simplicity**
+
    - No need to configure credentials for each Issuer
    - Relies on Alibaba Cloud SDK's standard Default Credential Chain
    - Issuer configuration becomes minimal
@@ -79,56 +82,7 @@ Unlike traditional solutions, this project adopts an **Infrastructure as Identit
 
 > **Note**: This mode means all DNS challenges handled by this Webhook instance belong to the same Alibaba Cloud account. This design simplifies operations while perfectly matching the vast majority of single-tenant or single-account Kubernetes cluster scenarios.
 
----
-
-## Architecture
-
-### RRSA Authentication Flow
-
-```mermaid
-sequenceDiagram
-    participant CM as cert-manager
-    participant WH as Webhook Server
-    participant SA as ServiceAccount
-    participant OIDC as ACK OIDC Provider
-    participant STS as Aliyun STS
-    participant AliDNS as AliDNS API
-
-    CM->>WH: DNS-01 Challenge Request
-    WH->>SA: Read OIDC Token
-    SA-->>WH: Return OIDC Token
-    WH->>OIDC: Verify Token
-    WH->>STS: Exchange OIDC Token → Temp Credentials
-    STS-->>WH: Return Temp AK/SK
-    WH->>AliDNS: Operate DNS with Temp Credentials
-    AliDNS-->>WH: Operation Success
-    WH-->>CM: Return Challenge Result
-```
-
-### DNS-01 Challenge Flow
-
-```mermaid
-flowchart TD
-    A[cert-manager Initiates DNS-01 Challenge] --> B[Call Webhook Present]
-    B --> C{Webhook Authentication}
-    C -->|RRSA| D[Get OIDC Token<br/>Exchange Temp Credentials]
-    C -->|AK/SK| E[Use Env Vars or Secret]
-    C -->|ECS Role| F[Get from Metadata Service]
-
-    D --> G[Call AliDNS API]
-    E --> G
-    F --> G
-
-    G --> H[Add TXT Record]
-    H --> I[Let's Encrypt Verification]
-    I -->|Success| J[Issue Certificate]
-    I -->|Failed| K[Clean and Retry]
-
-    J --> L[Call Webhook CleanUp]
-    K --> L
-    L --> M[Delete TXT Record]
-    M --> N[Complete]
-```
+> **Want to learn more about the architecture?** See [DEVELOPMENT.md](DEVELOPMENT.md#architecture-design) for RRSA authentication flow and DNS-01 challenge flow.
 
 ---
 
@@ -136,13 +90,13 @@ flowchart TD
 
 This webhook uses Alibaba Cloud [`credentials-go`](https://github.com/aliyun/credentials-go) default credential chain, automatically finding credentials in the following priority order:
 
-| Priority | Method                | Configuration                                                        | Best For                |
-| :-------: | :-------------------- | :------------------------------------------------------------------- | :---------------------- |
-| **1**     | **Env Vars AK/SK**    | `ALIBABA_CLOUD_ACCESS_KEY_ID` + `ALIBABA_CLOUD_ACCESS_KEY_SECRET`   | Development/Testing     |
-| **2**     | **RRSA (OIDC)**       | `ALIBABA_CLOUD_ROLE_ARN` + OIDC Token                                | **Production (ACK)**    |
-| **3**     | **config.json**       | `~/.aliyun/config.json`                                              | Local Development       |
-| **4**     | **ECS Instance RAM Role** | Metadata service (automatic)                                    | ACK ECS Nodes           |
-| **5**     | **Credentials URI**   | `ALIBABA_CLOUD_CREDENTIALS_URI`                                      | Special Scenarios       |
+| Priority | Method                    | Configuration                                                     | Best For             |
+| :------: | :------------------------ | :---------------------------------------------------------------- | :------------------- |
+|  **1**   | **Env Vars AK/SK**        | `ALIBABA_CLOUD_ACCESS_KEY_ID` + `ALIBABA_CLOUD_ACCESS_KEY_SECRET` | Development/Testing  |
+|  **2**   | **RRSA (OIDC)**           | `ALIBABA_CLOUD_ROLE_ARN` + OIDC Token                             | **Production (ACK)** |
+|  **3**   | **config.json**           | `~/.aliyun/config.json`                                           | Local Development    |
+|  **4**   | **ECS Instance RAM Role** | Metadata service (automatic)                                      | ACK ECS Nodes        |
+|  **5**   | **Credentials URI**       | `ALIBABA_CLOUD_CREDENTIALS_URI`                                   | Special Scenarios    |
 
 ---
 
@@ -161,6 +115,7 @@ This webhook uses Alibaba Cloud [`credentials-go`](https://github.com/aliyun/cre
 RRSA (RAM Roles for Service Accounts) is the recommended authentication method for production deployments on ACK (Alibaba Cloud Kubernetes).
 
 **Prerequisites:**
+
 - RRSA feature enabled in your ACK cluster
 - `ack-pod-identity-webhook` component installed
 - Namespace labeled with `pod-identity.alibabacloud.com/injection: on` OR `AutoInjectSTSEnvVars` set to `true` in `ack-pod-identity-webhook`
@@ -264,6 +219,25 @@ helm install cert-manager-alidns-webhook ./deploy/cert-manager-alidns-webhook \
   --set aliyunAuth.configJSON.configMapName=aliyun-config
 ```
 
+### Installing from OCI Registry
+
+You can also install the webhook directly from the GitHub Container Registry:
+
+```bash
+helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook \
+  --namespace cert-manager \
+  --create-namespace \
+  --version 0.1.0
+```
+
+To install the latest version:
+
+```bash
+helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook \
+  --namespace cert-manager \
+  --create-namespace
+```
+
 ---
 
 ## Usage Guide
@@ -333,20 +307,20 @@ spec:
 
 ### Helm Values
 
-| Parameter                            | Description                    | Default                                |
-| :----------------------------------- | :----------------------------- | :------------------------------------- |
-| `groupName`                           | API group name                 | `alidns.crazygit.github.io`            |
-| `image.repository`                    | Image repository               | `crazygit/cert-manager-alidns-webhook` |
-| `image.tag`                           | Image tag                      | `latest`                               |
-| `replicaCount`                        | Replica count                  | `1`                                    |
-| `aliyunAuth.regionID`                 | Alibaba Cloud region ID        | `""`                                   |
-| `aliyunAuth.accessKeyID`              | AccessKey ID                   | `""`                                   |
-| `aliyunAuth.accessKeySecret`          | AccessKey Secret               | `""`                                   |
-| `aliyunAuth.existingSecret`           | Existing Secret name           | `""`                                   |
-| `aliyunAuth.rrsa.enabled`             | Enable RRSA                    | `false`                                |
-| `aliyunAuth.rrsa.roleName`            | RRSA role name                 | `""`                                   |
-| `aliyunAuth.configJSON.enabled`       | Enable config.json             | `false`                                |
-| `aliyunAuth.configJSON.configMapName` | config.json ConfigMap name     | `""`                                   |
+| Parameter                             | Description                | Default                                |
+| :------------------------------------ | :------------------------- | :------------------------------------- |
+| `groupName`                           | API group name             | `alidns.crazygit.github.io`            |
+| `image.repository`                    | Image repository           | `crazygit/cert-manager-alidns-webhook` |
+| `image.tag`                           | Image tag                  | `latest`                               |
+| `replicaCount`                        | Replica count              | `1`                                    |
+| `aliyunAuth.regionID`                 | Alibaba Cloud region ID    | `""`                                   |
+| `aliyunAuth.accessKeyID`              | AccessKey ID               | `""`                                   |
+| `aliyunAuth.accessKeySecret`          | AccessKey Secret           | `""`                                   |
+| `aliyunAuth.existingSecret`           | Existing Secret name       | `""`                                   |
+| `aliyunAuth.rrsa.enabled`             | Enable RRSA                | `false`                                |
+| `aliyunAuth.rrsa.roleName`            | RRSA role name             | `""`                                   |
+| `aliyunAuth.configJSON.enabled`       | Enable config.json         | `false`                                |
+| `aliyunAuth.configJSON.configMapName` | config.json ConfigMap name | `""`                                   |
 
 For complete configuration, see [deploy/cert-manager-alidns-webhook/values.yaml](deploy/cert-manager-alidns-webhook/values.yaml).
 
@@ -377,6 +351,7 @@ kubectl logs -n cert-manager deployment/cert-manager-alidns-webhook
 <summary><b>2. "failed to add TXT record" error</b></summary>
 
 Check the following:
+
 - Verify your Alibaba Cloud credentials are correct
 - Ensure your domain is hosted on Alibaba Cloud DNS
 - Check that the AccessKey has DNS management permissions
@@ -388,6 +363,7 @@ Check the following:
 <summary><b>3. RRSA authentication not working</b></summary>
 
 Check the following:
+
 - Verify OIDC provider is configured in your ACK cluster
 - Check that the RAM role has required permissions
 - Ensure ServiceAccount annotations are correctly set

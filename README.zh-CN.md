@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/crazygit/cert-manager-alidns-webhook/actions/workflows/ci.yaml">
-    <img src="https://img.shields.io/github/actions/workflow/status/crazygit/cert-manager-alidns-webhook/ci.yaml?branch=main" alt="CI Status" />
+    <img src="https://img.shields.io/github/actions/workflow/status/crazygit/cert-manager-alidns-webhook/ci.yaml?branch=master" alt="CI Status" />
   </a>
   <a href="https://github.com/crazygit/cert-manager-alidns-webhook/releases">
     <img src="https://img.shields.io/github/v/release/crazygit/cert-manager-alidns-webhook" alt="Latest Release" />
@@ -18,8 +18,8 @@
   <a href="https://github.com/crazygit/cert-manager-alidns-webhook/pkgs/container/cert-manager-alidns-webhook">
     <img src="https://img.shields.io/github/v/release/crazygit/cert-manager-alidns-webhook?include_prereleases&label=ghcr.io" alt="Docker Package" />
   </a>
-  <a href="https://artifacthub.io/packages/helm/crazygit/alidns-webhook">
-    <img src="https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/crazygit/alidns-webhook" alt="Artifact Hub" />
+  <a href="https://codecov.io/github/crazygit/cert-manager-alidns-webhook" >
+    <img src="https://codecov.io/github/crazygit/cert-manager-alidns-webhook/graph/badge.svg?token=SE1CACI9FY"/>
   </a>
   <a href="LICENSE">
     <img src="https://img.shields.io/github/license/crazygit/cert-manager-alidns-webhook" alt="License" />
@@ -84,56 +84,7 @@
 
 > **注意**：此模式下，所有由该 Webhook 实例处理的 DNS 挑战都将归属于同一个阿里云账号。这一设计在简化运维的同时，完美契合绝大多数单租户或单账号管理的 Kubernetes 集群场景。
 
----
-
-## 架构说明
-
-### RRSA 认证流程
-
-```mermaid
-sequenceDiagram
-    participant CM as cert-manager
-    participant WH as Webhook Server
-    participant SA as ServiceAccount
-    participant OIDC as ACK OIDC Provider
-    participant STS as Aliyun STS
-    participant AliDNS as AliDNS API
-
-    CM->>WH: DNS-01 Challenge 请求
-    WH->>SA: 读取 OIDC Token
-    SA-->>WH: 返回 OIDC Token
-    WH->>OIDC: 验证 Token
-    WH->>STS: 交换 OIDC Token → 临时凭证
-    STS-->>WH: 返回临时 AK/SK
-    WH->>AliDNS: 使用临时凭证操作 DNS
-    AliDNS-->>WH: 操作成功
-    WH-->>CM: 返回 Challenge 结果
-```
-
-### DNS-01 挑战流程
-
-```mermaid
-flowchart TD
-    A[cert-manager 发起 DNS-01 挑战] --> B[调用 Webhook Present]
-    B --> C{Webhook 认证}
-    C -->|RRSA| D[获取 OIDC Token<br/>交换临时凭证]
-    C -->|AK/SK| E[使用环境变量或 Secret]
-    C -->|ECS Role| F[从元数据服务获取]
-
-    D --> G[调用 AliDNS API]
-    E --> G
-    F --> G
-
-    G --> H[添加 TXT 记录]
-    H --> I[Let's Encrypt 验证]
-    I -->|验证成功| J[签发证书]
-    I -->|验证失败| K[清理记录并重试]
-
-    J --> L[调用 Webhook CleanUp]
-    K --> L
-    L --> M[删除 TXT 记录]
-    M --> N[完成]
-```
+> **了解更多架构细节？** 请查看 [DEVELOPMENT.md](DEVELOPMENT.md#架构设计) 了解 RRSA 认证流程和 DNS-01 挑战流程。
 
 ---
 
@@ -188,32 +139,32 @@ helm install cert-manager-alidns-webhook ./deploy/cert-manager-alidns-webhook \
 
 ```json
 {
-  "Version" : "1",
-  "Statement" : [
+  "Version": "1",
+  "Statement": [
     {
-      "Action" : "alidns:AddDomainRecord",
-      "Resource" : "*",
-      "Effect" : "Allow"
+      "Action": "alidns:AddDomainRecord",
+      "Resource": "*",
+      "Effect": "Allow"
     },
     {
-      "Action" : "alidns:DeleteDomainRecord",
-      "Resource" : "*",
-      "Effect" : "Allow"
+      "Action": "alidns:DeleteDomainRecord",
+      "Resource": "*",
+      "Effect": "Allow"
     },
     {
-      "Action" : "alidns:UpdateDomainRecord",
-      "Resource" : "*",
-      "Effect" : "Allow"
+      "Action": "alidns:UpdateDomainRecord",
+      "Resource": "*",
+      "Effect": "Allow"
     },
     {
-      "Action" : "alidns:DescribeDomainRecords",
-      "Resource" : "*",
-      "Effect" : "Allow"
+      "Action": "alidns:DescribeDomainRecords",
+      "Resource": "*",
+      "Effect": "Allow"
     },
     {
-      "Action" : "alidns:DescribeDomains",
-      "Resource" : "*",
-      "Effect" : "Allow"
+      "Action": "alidns:DescribeDomains",
+      "Resource": "*",
+      "Effect": "Allow"
     }
   ]
 }
@@ -268,6 +219,25 @@ helm install cert-manager-alidns-webhook ./deploy/cert-manager-alidns-webhook \
   --namespace cert-manager \
   --set aliyunAuth.configJSON.enabled=true \
   --set aliyunAuth.configJSON.configMapName=aliyun-config
+```
+
+### 从 OCI Registry 安装
+
+你也可以直接从 GitHub Container Registry 安装 webhook：
+
+```bash
+helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook \
+  --namespace cert-manager \
+  --create-namespace \
+  --version 0.1.0
+```
+
+安装最新版本：
+
+```bash
+helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook \
+  --namespace cert-manager \
+  --create-namespace
 ```
 
 ---

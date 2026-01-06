@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"log/slog"
+
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	"k8s.io/client-go/rest"
 
@@ -93,9 +95,12 @@ func (s *Solver) Present(ch *v1alpha1.ChallengeRequest) error {
 		return fmt.Errorf("failed to add TXT record: %w", err)
 	}
 
-	// 记录成功信息（可选）
-	fmt.Printf("Successfully added TXT record: domain=%s, rr=%s, value=%s, recordId=%s\n",
-		domain, rr, ch.Key, recordId)
+	slog.Info("Successfully added TXT record",
+		"domain", domain,
+		"rr", rr,
+		"value", ch.Key,
+		"recordId", recordId,
+	)
 
 	return nil
 }
@@ -126,10 +131,11 @@ func (s *Solver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 		return fmt.Errorf("failed to delete TXT record: %w", err)
 	}
 
-	// 记录成功信息（可选）
-	fmt.Printf("Successfully deleted TXT record: domain=%s, rr=%s, value=%s\n",
-		domain, rr, ch.Key)
-
+	slog.Info("Successfully deleted TXT record",
+		"domain", domain,
+		"rr", rr,
+		"value", ch.Key,
+	)
 	return nil
 }
 
