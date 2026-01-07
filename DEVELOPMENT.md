@@ -11,6 +11,7 @@
 - [项目概述](#项目概述)
 - [架构设计](#架构设计)
 - [开发环境](#开发环境)
+- [故障排查](#故障排查)
 - [测试指南](#测试指南)
 - [参考资源](#参考资源)
 
@@ -191,6 +192,115 @@ export ALIBABA_CLOUD_ACCESS_KEY_SECRET=your_access_key_secret
   ]
 }
 ```
+
+---
+
+## 故障排查
+
+### 问题：OpenAPI TypeMeta 定义缺失
+
+#### 错误日志
+
+```
+Error: error installing APIGroup for solvers: unable to get openapi models:
+cannot find model definition for io.k8s.apimachinery.pkg.apis.meta.v1.TypeMeta.
+If you added a new type, you may need to add +k8s:openapi-gen=true
+to the package or type and run code-gen again
+```
+
+#### 问题原因
+
+此错误发生在 **Pod 启动时**，根本原因是 **Kubernetes Go 模块版本与集群版本不匹配**。
+
+| 项目     | 版本示例                                 |
+| -------- | ---------------------------------------- |
+| 项目依赖 | k8s.io/apiserver v0.35.0 (对应 K8s 1.35) |
+| 目标集群 | Kubernetes v1.34.1-aliyun.1              |
+
+当 `cmd.RunWebhookServer()` 尝试注册 API Group 时，其内部的 OpenAPI schema 定义与集群 API Server 的版本不一致，导致 TypeMeta 等核心类型定义无法正确加载。
+
+#### 版本对应关系
+
+Kubernetes Go 模块版本与集群版本的对应规则：
+
+```
+Kubernetes 集群版本 → Go 模块版本
+v1.28.x           → k8s.io/* v0.28.x
+v1.29.x           → k8s.io/* v0.29.x
+v1.30.x           → k8s.io/* v0.30.x
+v1.31.x           → k8s.io/* v0.31.x
+v1.32.x           → k8s.io/* v0.32.x
+v1.33.x           → k8s.io/* v0.33.x
+v1.34.x           → k8s.io/* v0.34.x
+v1.35.x           → k8s.io/* v0.35.x
+```
+
+**规则**: `Kubernetes v1.X.Y` 对应 `k8s.io/* v0.X.Y`
+
+**注意**: Go 模块使用 `v0.x` 前缀，而非 `v1.x`。这是 Kubernetes 项目的历史遗留命名规则。
+
+#### 解决方案
+
+1. **查看集群版本**
+
+```bash
+kubectl version --short
+# Server Version: v1.34.1-aliyun.1
+```
+
+2. **修改 go.mod**
+
+将所有 `k8s.io/*` 依赖修改为与集群版本匹配：
+
+```bash
+# 从 v0.35.0 降级到 v0.34.1
+sed -i '' 's|k8s.io/.* v0.35.0|k8s.io/client-go v0.34.1|' go.mod
+```
+
+或手动编辑 `go.mod`，将以下依赖从 `v0.35.0` 改为 `v0.34.1`：
+
+- `k8s.io/api`
+- `k8s.io/apiextensions-apiserver`
+- `k8s.io/apimachinery`
+- `k8s.io/apiserver`
+- `k8s.io/client-go`
+- `k8s.io/component-base`
+- `k8s.io/kms`
+
+3. **更新依赖**
+
+```bash
+go mod tidy
+```
+
+4. **运行测试验证**
+
+```bash
+go test -v ./...
+```
+
+#### 本地验证
+
+在部署到集群前，可以在本地直接运行 webhook 服务器进行验证：
+
+```bash
+# 确保已设置 kubeconfig 文件的 current-context
+kubectl config current-context
+
+# 运行 webhook 服务器（连接到真实集群）
+go run main.go \
+  --kubeconfig ~/.kube/config \
+  --authentication-kubeconfig ~/.kube/config \
+  --authorization-kubeconfig ~/.kube/config
+```
+
+**注意事项**：
+
+- kubeconfig 文件中的 `current-context` 应指向需要部署的目标集群
+- 如果使用自定义 kubeconfig 路径，请替换 `~/.kube/config` 为实际路径
+- 此命令会在本地启动 webhook 服务器并尝试连接到指定集群的 API Server
+
+如果没有问题，之前的错误信息应该不存在了。
 
 ---
 

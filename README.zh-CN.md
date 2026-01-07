@@ -106,7 +106,7 @@
 
 ### 前置条件
 
-- Kubernetes 1.19+
+- Kubernetes 1.34+
 - Helm 3.0+
 - 已安装 cert-manager v1.19.0+
 - 阿里云 DNS 账号
