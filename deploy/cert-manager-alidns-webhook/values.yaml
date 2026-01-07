@@ -15,45 +15,52 @@ certManager:
   serviceAccountName: cert-manager
 
 image:
-  repository: crazygit/cert-manager-alidns-webhook
+  repository: ghcr.io/crazygit/cert-manager-alidns-webhook
   tag: latest
   pullPolicy: IfNotPresent
 
 nameOverride: ""
 fullnameOverride: ""
 
+# -- Replica count for the webhook deployment
 replicaCount: 1
 
 service:
+  # -- Service type
   type: ClusterIP
+  # -- Service port
   port: 443
 
-# 阿里云认证配置
-# 支持 credentials-go 默认凭据链的多种认证方式
-# 认证优先级: 环境变量 AK/SK > RRSA > config.json > ECS Role > Credentials URI
+# -- Alibaba Cloud Authentication configuration
+# Supports multiple authentication methods via the Alibaba Cloud credentials-go default credential chain.
+# Priority: Env Vars AK/SK > RRSA > config.json > ECS Role > Credentials URI
 aliyunAuth:
-  # 用于拼接连接阿里云 DNS服务的 Endpoint, 为空时使用默认的 Endpoint, 例如: cn-hangzhou
+  # -- Alibaba Cloud region ID (e.g., cn-hangzhou). If empty, the default endpoint will be used.
   regionID: ""
 
-  # 方式1: 环境变量 AK/SK (开发/测试环境，不推荐生产环境)
-  accessKeyID: "" # 留空则不配置
-  accessKeySecret: "" # 留空则不配置
+  # -- AccessKey ID (Method 1: Direct configuration, not recommended for production)
+  accessKeyID: ""
+  # -- AccessKey Secret (Method 1: Direct configuration, not recommended for production)
+  accessKeySecret: ""
 
-  # 方式2: 从现有 Secret 引用 AK/SK (推荐用于测试环境)
-  # Secret 需要包含 accessKeyID 和 accessKeySecret 两个字段
-  existingSecret: "" # Secret 名称，留空则不使用
+  # -- Name of an existing Secret containing credentials (Method 2: Recommended for testing)
+  # The secret must contain `accessKeyID` and `accessKeySecret` keys.
+  existingSecret: ""
 
-  # 方式3: RRSA - RAM Roles for Service Accounts (推荐生产环境)
-  # 需要集群已配置 OIDC Provider
+  # -- RRSA (RAM Roles for Service Accounts) configuration (Method 3: Recommended for production)
+  # Requires OIDC Provider configured in your cluster.
   rrsa:
+    # -- Enable RRSA authentication
     enabled: false
-    roleName: "" # 例如: role_name  (注意: 不是 RoleARN 信息)
-  # 方式4: ECS 实例 RAM 角色，不需要任何配置
-  # 方式5: config.json 文件挂载 (可选)
-  # 用于本地开发或特殊场景
+    # -- RAM role name (just the name, not the full ARN)
+    roleName: ""
+  # Method 4: ECS Instance RAM Role (automatic, no config required)
+  # Method 5: config.json file via ConfigMap (optional)
   configJSON:
+    # -- Enable config.json authentication
     enabled: false
-    configMapName: "" # 包含 config.json 的 ConfigMap 名称
+    # -- ConfigMap name containing the config.json file
+    configMapName: ""
 
 resources:
   {}

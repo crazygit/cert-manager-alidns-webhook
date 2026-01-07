@@ -18,6 +18,9 @@
   <a href="https://github.com/crazygit/cert-manager-alidns-webhook/pkgs/container/cert-manager-alidns-webhook">
     <img src="https://img.shields.io/github/v/release/crazygit/cert-manager-alidns-webhook?include_prereleases&label=ghcr.io" alt="Docker Package" />
   </a>
+  <a href="https://artifacthub.io/packages/search?repo=cert-manager-alidns-webhook">
+    <img src="https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/cert-manager-alidns-webhook" alt="Artifact Hub" />
+  </a>
   <a href="https://codecov.io/github/crazygit/cert-manager-alidns-webhook" >
     <img src="https://codecov.io/github/crazygit/cert-manager-alidns-webhook/graph/badge.svg?token=SE1CACI9FY"/>
   </a>
@@ -51,7 +54,7 @@
 
 ### 设计理念对比
 
-传统 cert-manager webhook 方案通常要求在 `Issuer` 资源中显式配置 AccessKey/SecretKey。这种做法存在以下问题：
+传统 cert-manager webhook 方案通常要求在 `Issuer` 或 `ClusterIssuer` 资源中显式配置 AccessKey/SecretKey。这种做法存在以下问题：
 
 | 特性                 | 传统方案                   | 本项目                     |
 | :------------------- | :------------------------- | :------------------------- |
@@ -68,16 +71,15 @@
 
     - 彻底消除了静态 AK/SK 的硬编码风险
     - 原生支持 RRSA (OIDC) 等短期令牌机制
-
     - 完全符合云原生安全最佳实践
 
-1.  **极致的简化**
+2.  **极致的简化**
 
     - 无需为每个 Issuer 重复配置凭据
     - 完全依赖阿里云 SDK 标准的默认凭据链（Default Credential Chain）
     - Issuer 配置变得极其简洁
 
-1.  **灵活的认证**
+3.  **灵活的认证**
     - 开发环境可用环境变量
     - 测试环境可用 Kubernetes Secret
     - 生产环境推荐使用 RRSA
@@ -102,7 +104,7 @@
 
 ---
 
-## 快速开始
+## 安装
 
 ### 前置条件
 
@@ -117,25 +119,23 @@
 RRSA (RAM Roles for Service Accounts) 是在 ACK（阿里云 Kubernetes）上生产环境部署的推荐认证方式。使用前需满足以下条件：
 
 - 需要在 ACK 集群中开启使用 RRSA 功能
-- 在集群安装了`ack-pod-identity-webhook`组件
-- 在部署服务的 `namespace` 资源上，设置了 labels `pod-identity.alibabacloud.com/injection: on` 或者在安装`ack-pod-identity-webhook`组件时，配置了`AutoInjectSTSEnvVars` 为 `true`
+- 在集群中安装了 `ack-pod-identity-webhook` 组件
+- 在部署服务的 `namespace` 资源上，设置了 labels `pod-identity.alibabacloud.com/injection: on`
 
-如果不清楚是否满足条件，可以参考下面的文档逐步检查：
+如果不清楚是否满足条件，可以参考下面的文档逐步检查, 并根据步骤配置开启
 
 [通过 RRSA 配置 ServiceAccount 的 RAM 权限实现 Pod 权限隔离](https://help.aliyun.com/zh/ack/ack-managed-and-ack-dedicated/user-guide/use-rrsa-to-authorize-pods-to-access-different-cloud-services)
 
 ```bash
-# 3. 使用 Helm 安装 webhook
-helm install cert-manager-alidns-webhook ./deploy/cert-manager-alidns-webhook \
-  --namespace cert-manager \
-  --create-namespace \
+# 使用 Helm 安装 webhook
+helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook \
   --set aliyunAuth.rrsa.enabled=true \
-  --set aliyunAuth.rrsa.roleName="<ROLE_NAME>"
+  --set aliyunAuth.roleName=<YOUR_ROLE_NAME>
 ```
 
-**注意**：
+#### 为 RRSA 角色授权
 
-请将 `<ROLE_NAME>` 替换为你的 RAM 角色名称（不是完整的 ARN）。确保该角色已授予操作阿里云云解析服务的权限。
+请将 `<YOUR_ROLE_NAME>` 替换为你的 RAM 角色名称。并确保该角色已授予操作云解析服务的权限。如下:
 
 ```json
 {
@@ -152,17 +152,7 @@ helm install cert-manager-alidns-webhook ./deploy/cert-manager-alidns-webhook \
       "Effect": "Allow"
     },
     {
-      "Action": "alidns:UpdateDomainRecord",
-      "Resource": "*",
-      "Effect": "Allow"
-    },
-    {
       "Action": "alidns:DescribeDomainRecords",
-      "Resource": "*",
-      "Effect": "Allow"
-    },
-    {
-      "Action": "alidns:DescribeDomains",
       "Resource": "*",
       "Effect": "Allow"
     }
@@ -170,39 +160,30 @@ helm install cert-manager-alidns-webhook ./deploy/cert-manager-alidns-webhook \
 }
 ```
 
-### 方式二：使用 AccessKey（仅用于测试）
-
-<details>
-<summary>展开查看 AccessKey 配置方法</summary>
-
-对于测试或非生产环境，可以使用 AccessKey 认证：
+### 方式二：使用 AccessKey
 
 ```bash
-# 方式 1: 直接传入值（不推荐用于生产环境）
-helm install cert-manager-alidns-webhook ./deploy/cert-manager-alidns-webhook \
-  --namespace cert-manager \
+# 直接传值
+helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook \
   --set aliyunAuth.accessKeyID=<YOUR_ACCESS_KEY_ID> \
   --set aliyunAuth.accessKeySecret=<YOUR_ACCESS_KEY_SECRET>
 
-# 方式 2: 使用现有 Secret（更安全）
+
+# 使用现有 Secret（更安全）
 kubectl create secret generic alidns-credentials \
   --from-literal=accessKeyID=<YOUR_ACCESS_KEY_ID> \
   --from-literal=accessKeySecret=<YOUR_ACCESS_KEY_SECRET>
 
-helm install cert-manager-alidns-webhook ./deploy/cert-manager-alidns-webhook \
-  --namespace cert-manager \
+helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook \
   --set aliyunAuth.existingSecret=alidns-credentials
 ```
 
-</details>
-
 ### 方式三：在 ACK ECS 上使用实例 RAM 角色
 
-如果你的 Kubernetes 集群运行在阿里云 ECS 上，并且已分配实例 RAM 角色，无需额外认证配置：
+如果你的 Kubernetes 集群运行在阿里云 ECS 上，并且已分配实例 RAM 角色并为该角色绑定了[所需的权限](#为-rrsa-角色授权)，无需额外认证配置：
 
 ```bash
-helm install cert-manager-alidns-webhook ./deploy/cert-manager-alidns-webhook \
-  --namespace cert-manager
+helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook
 ```
 
 ### 方式四：使用 config.json 文件
@@ -210,39 +191,38 @@ helm install cert-manager-alidns-webhook ./deploy/cert-manager-alidns-webhook \
 适用于本地开发或特殊场景，通过 ConfigMap 挂载阿里云配置文件：
 
 ```bash
-# 1. 创建包含 config.json 的 ConfigMap
+# 创建包含 config.json 的 ConfigMap
 kubectl create configmap aliyun-config \
   --from-file=config.json=/path/to/.aliyun/config.json
 
-# 2. 使用 Helm 安装 webhook
-helm install cert-manager-alidns-webhook ./deploy/cert-manager-alidns-webhook \
-  --namespace cert-manager \
+# 使用 Helm 安装 webhook
+helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook \
   --set aliyunAuth.configJSON.enabled=true \
   --set aliyunAuth.configJSON.configMapName=aliyun-config
-```
-
-### 从 OCI Registry 安装
-
-你也可以直接从 GitHub Container Registry 安装 webhook：
-
-```bash
-helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook \
-  --namespace cert-manager \
-  --create-namespace \
-  --version 0.1.0
-```
-
-安装最新版本：
-
-```bash
-helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook \
-  --namespace cert-manager \
-  --create-namespace
 ```
 
 ---
 
 ## 使用指南
+
+### 创建 ClusterIssuer
+
+```yaml
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod-dns01
+spec:
+  acme:
+    privateKeySecretRef:
+      name: letsencrypt-prod-dns01-key
+    server: https://acme-v02.api.letsencrypt.org/directory
+    solvers:
+      - dns01:
+          webhook:
+            groupName: alidns.crazygit.github.io # 若 Helm 安装时自定义了 groupName，此处需保持一致
+            solverName: alidns
+```
 
 ### 创建 Issuer
 
@@ -250,60 +230,36 @@ helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
-  name: letsencrypt-aliyun
+  name: letsencrypt-prod-dns01
   namespace: default
 spec:
   acme:
-    server: https://acme-v02.api.letsencrypt.org/directory
-    email: your-email@example.com
     privateKeySecretRef:
-      name: letsencrypt-aliyun
+      name: letsencrypt-prod-dns01-key
+    server: https://acme-v02.api.letsencrypt.org/directory
     solvers:
       - dns01:
           webhook:
-            groupName: alidns.crazygit.github.io
+            groupName: alidns.crazygit.github.io # 若 Helm 安装时自定义了 groupName，此处需保持一致
             solverName: alidns
-```
-
-### 创建 ClusterIssuer（推荐）
-
-```yaml
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: letsencrypt-aliyun-prod
-spec:
-  acme:
-    server: https://acme-v02.api.letsencrypt.org/directory
-    email: your-email@example.com
-    privateKeySecretRef:
-      name: letsencrypt-aliyun-prod
-    solvers:
-      - dns01:
-          webhook:
-            groupName: alidns.crazygit.github.io
-            solverName: alidns
-```
-
-### 签发证书
-
-```yaml
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: example-com
-  namespace: default
-spec:
-  secretName: example-com-tls
-  dnsNames:
-    - example.com
-    - "*.example.com"
-  issuerRef:
-    name: letsencrypt-aliyun
-    kind: Issuer
 ```
 
 ---
+
+## 卸载
+
+```bash
+# 卸载 webhook
+helm uninstall cert-manager-alidns-webhook
+
+# 如果使用了 Secret，也需要删除
+kubectl delete secret alidns-credentials
+
+# 如果使用了 ConfigMap，也需要删除
+kubectl delete configmap aliyun-config
+
+# 再删掉创建的Issuer或ClusterIssuer
+```
 
 ## 配置参考
 
@@ -324,7 +280,7 @@ spec:
 | `aliyunAuth.configJSON.enabled`       | 启用 config.json              | `false`                                |
 | `aliyunAuth.configJSON.configMapName` | config.json 的 ConfigMap 名称 | `""`                                   |
 
-完整配置请参考 [deploy/cert-manager-alidns-webhook/values.yaml](deploy/cert-manager-alidns-webhook/values.yaml)。
+完整配置请参考 [deploy/cert-manager-alidns-webhook/values.yaml](https://github.com/crazygit/cert-manager-alidns-webhook/blob/master/deploy/cert-manager-alidns-webhook/values.yaml)。
 
 ---
 
@@ -344,7 +300,7 @@ spec:
 这是首次尝试时的正常行为。cert-manager 在创建实际挑战前会执行 dry run。请检查日志以获取真实错误信息。
 
 ```bash
-kubectl logs -n cert-manager deployment/cert-manager-alidns-webhook
+kubectl logs deployment/cert-manager-alidns-webhook
 ```
 
 </details>
@@ -373,10 +329,10 @@ kubectl logs -n cert-manager deployment/cert-manager-alidns-webhook
 
 ```bash
 # 查看 ServiceAccount 配置
-kubectl get sa -n cert-manager cert-manager-alidns-webhook -o yaml
+kubectl get sa cert-manager-alidns-webhook -o yaml
 
 # 查看 webhook 日志
-kubectl logs -n cert-manager deployment/cert-manager-alidns-webhook
+kubectl logs deployment/cert-manager-alidns-webhook
 ```
 
 </details>
@@ -385,10 +341,10 @@ kubectl logs -n cert-manager deployment/cert-manager-alidns-webhook
 
 ```bash
 # 查看 webhook 日志
-kubectl logs -n cert-manager deployment/cert-manager-alidns-webhook
+kubectl logs deployment/cert-manager-alidns-webhook
 
 # 查看 cert-manager 日志
-kubectl logs -n cert-manager deployment/cert-manager
+kubectl logs deployment/cert-manager
 ```
 
 ---
@@ -397,30 +353,14 @@ kubectl logs -n cert-manager deployment/cert-manager
 
 1.  **生产环境使用 RRSA**
     避免使用硬编码的 AccessKey，优先使用 RRSA 进行身份认证。
-
 2.  **限制 RAM 角色权限**
     仅授予 DNS 管理权限，遵循最小权限原则。
-
 3.  **定期轮换凭据**
     遵循阿里云安全最佳实践，定期轮换 AccessKey。
-
 4.  **网络策略**
     限制仅 cert-manager 可访问 webhook。
-
 5.  **使用私有镜像仓库**
     在生产环境中，使用私有镜像仓库存储 webhook 镜像。
-
----
-
-## RBAC
-
-Webhook 需要以下 Kubernetes 权限：
-
-- 对 `extension-apiserver-authentication-reader` Role 的读取权限
-- `system:auth-delegator` ClusterRole
-- API 组 `alidns.crazygit.github.io` 的自定义 ClusterRole
-
-这些权限会由 Helm Chart 自动创建。
 
 ---
 

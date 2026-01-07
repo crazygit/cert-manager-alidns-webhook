@@ -12,12 +12,14 @@
   <a href="https://github.com/crazygit/cert-manager-alidns-webhook/actions/workflows/ci.yaml">
     <img src="https://img.shields.io/github/actions/workflow/status/crazygit/cert-manager-alidns-webhook/ci.yaml?branch=master" alt="CI Status" />
   </a>
-
   <a href="https://github.com/crazygit/cert-manager-alidns-webhook/releases">
     <img src="https://img.shields.io/github/v/release/crazygit/cert-manager-alidns-webhook" alt="Latest Release" />
   </a>
   <a href="https://github.com/crazygit/cert-manager-alidns-webhook/pkgs/container/cert-manager-alidns-webhook">
     <img src="https://img.shields.io/github/v/release/crazygit/cert-manager-alidns-webhook?include_prereleases&label=ghcr.io" alt="Docker Package" />
+  </a>
+  <a href="https://artifacthub.io/packages/search?repo=cert-manager-alidns-webhook">
+    <img src="https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/cert-manager-alidns-webhook" alt="Artifact Hub" />
   </a>
   <a href="https://codecov.io/github/crazygit/cert-manager-alidns-webhook" >
     <img src="https://codecov.io/github/crazygit/cert-manager-alidns-webhook/graph/badge.svg?token=SE1CACI9FY"/>
@@ -33,9 +35,9 @@
 
 ## Introduction
 
-This webhook enables cert-manager to solve DNS-01 challenges using Alibaba Cloud DNS.
+This webhook enables cert-manager to solve DNS-01 challenges using Alibaba Cloud DNS (AliDNS).
 
-Unlike traditional solutions, this project adopts an **Infrastructure as Identity** design philosophy. By decoupling authentication from application configuration, the webhook server authenticates using its runtime environment identity (such as RRSA in ACK or ECS Instance Roles).
+Unlike traditional solutions, this project adopts an **Infrastructure as Identity** design philosophy. By decoupling authentication from application configuration, the webhook server authenticates using its runtime environment identity (such as RRSA in ACK or ECS Instance Roles), supporting the standard default credential chain of the Alibaba Cloud SDK.
 
 ### Core Features
 
@@ -51,6 +53,8 @@ Unlike traditional solutions, this project adopts an **Infrastructure as Identit
 ## Why This Project?
 
 ### Design Philosophy Comparison
+
+Traditional cert-manager webhook solutions often require explicit configuration of AccessKey/SecretKey in the `Issuer` or `ClusterIssuer` resource. This approach has several issues:
 
 | Feature                      | Traditional Solutions       | This Project                      |
 | :--------------------------- | :-------------------------- | :-------------------------------- |
@@ -100,11 +104,11 @@ This webhook uses Alibaba Cloud [`credentials-go`](https://github.com/aliyun/cre
 
 ---
 
-## Quick Start
+## Installation
 
 ### Prerequisites
 
-- Kubernetes 1.19+
+- Kubernetes 1.34+
 - Helm 3.0+
 - cert-manager v1.19.0+ installed
 - Alibaba Cloud DNS account
@@ -118,22 +122,22 @@ RRSA (RAM Roles for Service Accounts) is the recommended authentication method f
 
 - RRSA feature enabled in your ACK cluster
 - `ack-pod-identity-webhook` component installed
-- Namespace labeled with `pod-identity.alibabacloud.com/injection: on` OR `AutoInjectSTSEnvVars` set to `true` in `ack-pod-identity-webhook`
+- Namespace labeled with `pod-identity.alibabacloud.com/injection: on`
 
-If you're unsure whether these conditions are met, refer to the documentation:
+If you're unsure whether these conditions are met, refer to the documentation to check and configure step by step:
 
 [Use RRSA to Authorize Pods to Access Different Cloud Services](https://help.aliyun.com/zh/ack/ack-managed-and-ack-dedicated/user-guide/use-rrsa-to-authorize-pods-to-access-different-cloud-services)
 
 ```bash
-# 3. Install webhook using Helm
-helm install cert-manager-alidns-webhook ./deploy/cert-manager-alidns-webhook \
-  --namespace cert-manager \
-  --create-namespace \
+# Install webhook using Helm
+helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook \
   --set aliyunAuth.rrsa.enabled=true \
-  --set aliyunAuth.rrsa.roleName="<ROLE_NAME>"
+  --set aliyunAuth.rrsa.roleName=<YOUR_ROLE_NAME>
 ```
 
-**Note**: Replace `<ROLE_NAME>` with your RAM role name (not the full ARN), and ensure the role has AliDNS operation permissions:
+#### Authorize RRSA Role
+
+Please replace `<YOUR_ROLE_NAME>` with your RAM role name. Ensure the role has AliDNS operation permissions:
 
 ```json
 {
@@ -150,17 +154,7 @@ helm install cert-manager-alidns-webhook ./deploy/cert-manager-alidns-webhook \
       "Effect": "Allow"
     },
     {
-      "Action": "alidns:UpdateDomainRecord",
-      "Resource": "*",
-      "Effect": "Allow"
-    },
-    {
       "Action": "alidns:DescribeDomainRecords",
-      "Resource": "*",
-      "Effect": "Allow"
-    },
-    {
-      "Action": "alidns:DescribeDomains",
       "Resource": "*",
       "Effect": "Allow"
     }
@@ -168,17 +162,11 @@ helm install cert-manager-alidns-webhook ./deploy/cert-manager-alidns-webhook \
 }
 ```
 
-### Method 2: Using AccessKey (For Testing Only)
-
-<details>
-<summary>Click to expand AccessKey configuration</summary>
-
-For testing or non-production environments:
+### Method 2: Using AccessKey
 
 ```bash
-# Method 1: Direct values (not recommended for production)
-helm install cert-manager-alidns-webhook ./deploy/cert-manager-alidns-webhook \
-  --namespace cert-manager \
+# Method 1: Direct values
+helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook \
   --set aliyunAuth.accessKeyID=<YOUR_ACCESS_KEY_ID> \
   --set aliyunAuth.accessKeySecret=<YOUR_ACCESS_KEY_SECRET>
 
@@ -187,25 +175,21 @@ kubectl create secret generic alidns-credentials \
   --from-literal=accessKeyID=<YOUR_ACCESS_KEY_ID> \
   --from-literal=accessKeySecret=<YOUR_ACCESS_KEY_SECRET>
 
-helm install cert-manager-alidns-webhook ./deploy/cert-manager-alidns-webhook \
-  --namespace cert-manager \
+helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook \
   --set aliyunAuth.existingSecret=alidns-credentials
 ```
 
-</details>
-
 ### Method 3: On ACK ECS with Instance RAM Role
 
-If your Kubernetes cluster runs on Alibaba Cloud ECS with an instance RAM role assigned:
+If your Kubernetes cluster runs on Alibaba Cloud ECS with an instance RAM role assigned and the [required permissions](#authorize-rrsa-role) bound to that role, no additional authentication configuration is needed:
 
 ```bash
-helm install cert-manager-alidns-webhook ./deploy/cert-manager-alidns-webhook \
-  --namespace cert-manager
+helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook
 ```
 
 ### Method 4: Using config.json File
 
-For local development or special scenarios:
+For local development or special scenarios, mount the Alibaba Cloud configuration file via ConfigMap:
 
 ```bash
 # 1. Create ConfigMap with config.json
@@ -213,34 +197,33 @@ kubectl create configmap aliyun-config \
   --from-file=config.json=/path/to/.aliyun/config.json
 
 # 2. Install webhook using Helm
-helm install cert-manager-alidns-webhook ./deploy/cert-manager-alidns-webhook \
-  --namespace cert-manager \
+helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook \
   --set aliyunAuth.configJSON.enabled=true \
   --set aliyunAuth.configJSON.configMapName=aliyun-config
-```
-
-### Installing from OCI Registry
-
-You can also install the webhook directly from the GitHub Container Registry:
-
-```bash
-helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook \
-  --namespace cert-manager \
-  --create-namespace \
-  --version 0.1.0
-```
-
-To install the latest version:
-
-```bash
-helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook \
-  --namespace cert-manager \
-  --create-namespace
 ```
 
 ---
 
 ## Usage Guide
+
+### Create a ClusterIssuer
+
+```yaml
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod-dns01
+spec:
+  acme:
+    privateKeySecretRef:
+      name: letsencrypt-prod-dns01-key
+    server: https://acme-v02.api.letsencrypt.org/directory
+    solvers:
+      - dns01:
+          webhook:
+            groupName: alidns.crazygit.github.io # Must match the groupName used during Helm installation
+            solverName: alidns
+```
 
 ### Create an Issuer
 
@@ -248,60 +231,36 @@ helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
-  name: letsencrypt-aliyun
+  name: letsencrypt-prod-dns01
   namespace: default
 spec:
   acme:
-    server: https://acme-v02.api.letsencrypt.org/directory
-    email: your-email@example.com
     privateKeySecretRef:
-      name: letsencrypt-aliyun
+      name: letsencrypt-prod-dns01-key
+    server: https://acme-v02.api.letsencrypt.org/directory
     solvers:
       - dns01:
           webhook:
-            groupName: alidns.crazygit.github.io
+            groupName: alidns.crazygit.github.io # Must match the groupName used during Helm installation
             solverName: alidns
-```
-
-### Create a ClusterIssuer (Recommended)
-
-```yaml
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: letsencrypt-aliyun-prod
-spec:
-  acme:
-    server: https://acme-v02.api.letsencrypt.org/directory
-    email: your-email@example.com
-    privateKeySecretRef:
-      name: letsencrypt-aliyun-prod
-    solvers:
-      - dns01:
-          webhook:
-            groupName: alidns.crazygit.github.io
-            solverName: alidns
-```
-
-### Issue a Certificate
-
-```yaml
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: example-com
-  namespace: default
-spec:
-  secretName: example-com-tls
-  dnsNames:
-    - example.com
-    - "*.example.com"
-  issuerRef:
-    name: letsencrypt-aliyun
-    kind: Issuer
 ```
 
 ---
+
+## Uninstall
+
+```bash
+# Uninstall webhook
+helm uninstall cert-manager-alidns-webhook
+
+# If Secret was used, delete it
+kubectl delete secret alidns-credentials
+
+# If ConfigMap was used, delete it
+kubectl delete configmap aliyun-config
+
+# Delete created Issuer or ClusterIssuer
+```
 
 ## Configuration Reference
 
@@ -342,7 +301,7 @@ For development details, see [DEVELOPMENT.md](DEVELOPMENT.md).
 This is expected during the first attempt. cert-manager performs a dry run before creating the actual challenge. Check logs for the real error.
 
 ```bash
-kubectl logs -n cert-manager deployment/cert-manager-alidns-webhook
+kubectl logs deployment/cert-manager-alidns-webhook
 ```
 
 </details>
@@ -371,10 +330,10 @@ Check the following:
 
 ```bash
 # View ServiceAccount configuration
-kubectl get sa -n cert-manager cert-manager-alidns-webhook -o yaml
+kubectl get sa cert-manager-alidns-webhook -o yaml
 
 # View webhook logs
-kubectl logs -n cert-manager deployment/cert-manager-alidns-webhook
+kubectl logs deployment/cert-manager-alidns-webhook
 ```
 
 </details>
@@ -383,10 +342,10 @@ kubectl logs -n cert-manager deployment/cert-manager-alidns-webhook
 
 ```bash
 # View webhook logs
-kubectl logs -n cert-manager deployment/cert-manager-alidns-webhook
+kubectl logs deployment/cert-manager-alidns-webhook
 
 # View cert-manager logs
-kubectl logs -n cert-manager deployment/cert-manager
+kubectl logs deployment/cert-manager
 ```
 
 ---
@@ -407,18 +366,6 @@ kubectl logs -n cert-manager deployment/cert-manager
 
 5. **Use Private Image Registry**
    In production, use a private image registry for the webhook image.
-
----
-
-## RBAC
-
-The webhook requires the following Kubernetes permissions:
-
-- Read access to `extension-apiserver-authentication-reader` Role
-- `system:auth-delegator` ClusterRole
-- Custom ClusterRole for API group `alidns.crazygit.github.io`
-
-These are automatically created by the Helm Chart.
 
 ---
 

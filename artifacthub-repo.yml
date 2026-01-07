@@ -1,0 +1,7 @@
+# Artifact Hub repository metadata file
+# https://artifacthub.io/docs/topics/repositories/repository-metadata/
+
+repositoryID: 322dd731-9a7d-4668-a907-703472f16323
+owners:
+  - name: crazygit
+    email: lianglin999@gmail.com

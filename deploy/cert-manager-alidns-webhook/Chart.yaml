@@ -1,5 +1,5 @@
 apiVersion: v1
-appVersion: "v0.1.0"
+appVersion: "v0.1.2"
 description: |
   AliDNS Webhook for cert-manager - A cert-manager webhook solver for Alibaba Cloud DNS.
 
@@ -8,7 +8,7 @@ description: |
   ECS instance RAM role, and more via the Alibaba Cloud credentials-go default credential chain.
 
 name: cert-manager-alidns-webhook
-version: 0.1.0
+version: 0.1.2
 keywords:
   - cert-manager
   - alidns
@@ -23,3 +23,23 @@ sources:
 maintainers:
   - name: crazygit
     email: lianglin999@gmail.com
+icon: https://raw.githubusercontent.com/cert-manager/cert-manager/d53c0b9270f8cd90d908460d69502694e1838f5f/logo/logo-small.png
+annotations:
+  artifacthub.io/category: security
+  artifacthub.io/license: Apache-2.0
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial release with RRSA authentication support
+  artifacthub.io/links: |
+    - name: Documentation
+      url: https://github.com/crazygit/cert-manager-alidns-webhook#readme
+    - name: Support
+      url: https://github.com/crazygit/cert-manager-alidns-webhook/issues
+  artifacthub.io/maintainers: |
+    - name: crazygit
+      email: lianglin999@gmail.com
+  artifacthub.io/operator: "false"
+  artifacthub.io/recommendations: |
+    - url: https://artifacthub.io/packages/helm/cert-manager/cert-manager
+  artifacthub.io/containsSecurityUpdates: "false"
+  artifacthub.io/prerelease: "false"
