@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/crazygit/cert-manager-alidns-webhook/actions/workflows/ci.yaml">
-    <img src="https://img.shields.io/github/actions/workflow/status/crazygit/cert-manager-alidns-webhook/ci.yaml?branch=master" alt="CI Status" />
+    <img src="https://img.shields.io/github/actions/workflow/status/crazygit/cert-manager-alidns-webhook/ci.yaml?branch=main" alt="CI Status" />
   </a>
   <a href="https://github.com/crazygit/cert-manager-alidns-webhook/releases">
     <img src="https://img.shields.io/github/v/release/crazygit/cert-manager-alidns-webhook" alt="Latest Release" />

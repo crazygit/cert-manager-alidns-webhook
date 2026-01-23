@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/crazygit/cert-manager-alidns-webhook/actions/workflows/ci.yaml">
-    <img src="https://img.shields.io/github/actions/workflow/status/crazygit/cert-manager-alidns-webhook/ci.yaml?branch=master" alt="CI Status" />
+    <img src="https://img.shields.io/github/actions/workflow/status/crazygit/cert-manager-alidns-webhook/ci.yaml?branch=main" alt="CI Status" />
   </a>
   <a href="https://github.com/crazygit/cert-manager-alidns-webhook/releases">
     <img src="https://img.shields.io/github/v/release/crazygit/cert-manager-alidns-webhook" alt="Latest Release" />
@@ -280,7 +280,7 @@ kubectl delete configmap aliyun-config
 | `aliyunAuth.configJSON.enabled`       | 启用 config.json              | `false`                                |
 | `aliyunAuth.configJSON.configMapName` | config.json 的 ConfigMap 名称 | `""`                                   |
 
-完整配置请参考 [deploy/cert-manager-alidns-webhook/values.yaml](https://github.com/crazygit/cert-manager-alidns-webhook/blob/master/deploy/cert-manager-alidns-webhook/values.yaml)。
+完整配置请参考 [deploy/cert-manager-alidns-webhook/values.yaml](https://github.com/crazygit/cert-manager-alidns-webhook/blob/main/deploy/cert-manager-alidns-webhook/values.yaml)。
 
 ---
 
