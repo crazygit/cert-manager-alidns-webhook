@@ -11,11 +11,30 @@ KUBEBUILDER_VERSION=1.28.0
 
 HELM_FILES := $(shell find deploy/cert-manager-alidns-webhook)
 
-test: _test/kubebuilder-$(KUBEBUILDER_VERSION)-$(OS)-$(ARCH)/etcd _test/kubebuilder-$(KUBEBUILDER_VERSION)-$(OS)-$(ARCH)/kube-apiserver _test/kubebuilder-$(KUBEBUILDER_VERSION)-$(OS)-$(ARCH)/kubectl
+.DEFAULT_GOAL := test-unit
+.MAIN: test-unit
+
+.PHONY: test-integration
+test-integration: _test/kubebuilder-$(KUBEBUILDER_VERSION)-$(OS)-$(ARCH)/etcd _test/kubebuilder-$(KUBEBUILDER_VERSION)-$(OS)-$(ARCH)/kube-apiserver _test/kubebuilder-$(KUBEBUILDER_VERSION)-$(OS)-$(ARCH)/kubectl
+	@if [ -z "$(TEST_ZONE_NAME)" ]; then \
+		echo "ERROR: TEST_ZONE_NAME is not set. Example: TEST_ZONE_NAME=example.com. (note the trailing dot)."; \
+		exit 1; \
+	fi
+	@if ! printf '%s' "$(TEST_ZONE_NAME)" | grep -Eq '^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*\.$'; then \
+		echo "ERROR: TEST_ZONE_NAME must be a FQDN ending with a dot, e.g. example.com. (trailing dot required)."; \
+		exit 1; \
+	fi
 	TEST_ASSET_ETCD=_test/kubebuilder-$(KUBEBUILDER_VERSION)-$(OS)-$(ARCH)/etcd \
 	TEST_ASSET_KUBE_APISERVER=_test/kubebuilder-$(KUBEBUILDER_VERSION)-$(OS)-$(ARCH)/kube-apiserver \
 	TEST_ASSET_KUBECTL=_test/kubebuilder-$(KUBEBUILDER_VERSION)-$(OS)-$(ARCH)/kubectl \
-	$(GO) test -v .
+	$(GO) test -v  -tags=integration .
+
+.PHONY: test-unit
+test-unit:
+	$(GO) test -v ./...
+
+.PHONY: test-all
+test-all: test-unit test-integration
 
 _test/kubebuilder-$(KUBEBUILDER_VERSION)-$(OS)-$(ARCH).tar.gz: | _test
 	curl -fsSL https://go.kubebuilder.io/test-tools/$(KUBEBUILDER_VERSION)/$(OS)/$(ARCH) -o $@

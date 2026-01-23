@@ -7,6 +7,7 @@ import (
 	"log/slog"
 
 	"github.com/cert-manager/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
+	"golang.org/x/net/idna"
 	"k8s.io/client-go/rest"
 
 	"github.com/cert-manager/cert-manager/pkg/issuer/acme/dns/util"
@@ -199,6 +200,14 @@ func (s *Solver) extractDomainAndRR(fqdn, zone string) (string, string) {
 
 	// 移除 rr 可能的结尾点
 	rr = strings.TrimSuffix(rr, ".")
+
+	// Convert Punycode to Unicode for both zone (domain) and rr
+	if uZone, err := idna.ToUnicode(zone); err == nil {
+		zone = uZone
+	}
+	if uRR, err := idna.ToUnicode(rr); err == nil {
+		rr = uRR
+	}
 
 	return zone, rr
 }

@@ -160,8 +160,8 @@ cd cert-manager-alidns-webhook
 # 2. 安装依赖
 go mod download
 
-# 3. 运行测试
-go test -v ./...
+# 3. 运行测试（默认只跑单元测试）
+make
 ```
 
 ### 阿里云访问凭证配置
@@ -273,10 +273,10 @@ sed -i '' 's|k8s.io/.* v0.35.0|k8s.io/client-go v0.34.1|' go.mod
 go mod tidy
 ```
 
-4. **运行测试验证**
+4. **运行测试验证（默认只跑单元测试）**
 
 ```bash
-go test -v ./...
+make
 ```
 
 #### 本地验证
@@ -312,7 +312,7 @@ go run main.go \
 
 ```bash
 # 运行所有单元测试
-go test -v ./...
+make test-unit
 
 # 运行特定包的测试
 go test -v ./pkg/alidns/
@@ -336,14 +336,18 @@ go test -cover ./...
 
 ```bash
 # 设置测试域名（注意末尾的点）
-TEST_ZONE_NAME=example.com. make test
-
-# 或者直接运行 go test（需要先设置环境变量）
-export TEST_ZONE_NAME=example.com.
-go test -v ./pkg/alidns/ -tags=integration
+TEST_ZONE_NAME=example.com. make test-integration
 ```
 
+Makefile 会检查 `TEST_ZONE_NAME` 是否设置并校验格式（必须以点结尾）。
+
 替换上面命令中 `example.com.` 为你当前托管在阿里云用于测试的域名（不要忘记域名后面的 `.`）。
+
+#### 运行全部测试
+
+```bash
+make test-all
+```
 
 ---
 
@@ -370,7 +374,7 @@ go test -v ./pkg/alidns/ -tags=integration
 
 在提交 PR 前，请确保：
 
-1. ✅ 代码通过所有测试（`go test ./...`）
+1. ✅ 代码通过所有测试（`make test-all`）
 2. ✅ 添加了必要的单元测试
 3. ✅ 更新了相关文档（如需要）
 

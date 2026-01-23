@@ -10,6 +10,7 @@ require (
 	github.com/aliyun/credentials-go v1.4.10
 	github.com/cert-manager/cert-manager v1.19.2
 	github.com/stretchr/testify v1.11.1
+	golang.org/x/net v0.47.0
 	k8s.io/client-go v0.34.1
 )
 
@@ -87,7 +88,6 @@ require (
 	golang.org/x/crypto v0.45.0 // indirect
 	golang.org/x/exp v0.0.0-20250718183923-645b1fa84792 // indirect
 	golang.org/x/mod v0.30.0 // indirect
-	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/oauth2 v0.31.0 // indirect
 	golang.org/x/sync v0.18.0 // indirect
 	golang.org/x/sys v0.38.0 // indirect

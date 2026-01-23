@@ -10,6 +10,7 @@ import (
 	util "github.com/alibabacloud-go/tea-utils/v2/service"
 	"github.com/alibabacloud-go/tea/tea"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // MockAliDNSClient 是用于测试的 mock 客户端
@@ -54,11 +55,11 @@ func (m *MockAliDNSClient) DescribeDomainRecordsWithOptions(request *alidns.Desc
 
 func TestAddTXTRecord(t *testing.T) {
 	tests := []struct {
-		name         string
+		name            string
 		existingRecords []*alidns.DescribeDomainRecordsResponseBodyDomainRecordsRecord
-		addFuncCalled bool
-		expectError  bool
-		errorMsg     string
+		addFuncCalled   bool
+		expectError     bool
+		errorMsg        string
 	}{
 		{
 			name:            "new record - should create",
@@ -133,9 +134,10 @@ func TestAddTXTRecord(t *testing.T) {
 				}
 			} else {
 				assert.NoError(t, err)
-				if tt.name == "record already exists - should return existing" {
+				switch tt.name {
+				case "record already exists - should return existing":
 					assert.Equal(t, "existing-id", recordID)
-				} else if tt.name == "new record - should create" {
+				case "new record - should create":
 					assert.Equal(t, "new-record-id", recordID)
 				}
 			}
@@ -196,7 +198,7 @@ func TestDeleteRecordsByKey(t *testing.T) {
 		expectError  bool
 	}{
 		{
-			name:         "single matching record",
+			name: "single matching record",
 			records: []*alidns.DescribeDomainRecordsResponseBodyDomainRecordsRecord{
 				{
 					RecordId: tea.String("record-1"),
@@ -228,8 +230,8 @@ func TestDeleteRecordsByKey(t *testing.T) {
 			expectError:  false,
 		},
 		{
-			name:        "describe API error",
-			records:     nil,
+			name:         "describe API error",
+			records:      nil,
 			expectDelete: 0,
 			expectError:  true,
 		},
@@ -432,21 +434,31 @@ func TestGetEndpoint(t *testing.T) {
 			originalValue := os.Getenv("ALIBABA_CLOUD_REGION_ID")
 			defer func() {
 				if originalValue != "" {
-					os.Setenv("ALIBABA_CLOUD_REGION_ID", originalValue)
+					mustSetEnv(t, "ALIBABA_CLOUD_REGION_ID", originalValue)
 				} else {
-					os.Unsetenv("ALIBABA_CLOUD_REGION_ID")
+					mustUnsetEnv(t, "ALIBABA_CLOUD_REGION_ID")
 				}
 			}()
 
 			// Set test env var
 			if tt.envRegion != "" {
-				os.Setenv("ALIBABA_CLOUD_REGION_ID", tt.envRegion)
+				mustSetEnv(t, "ALIBABA_CLOUD_REGION_ID", tt.envRegion)
 			} else {
-				os.Unsetenv("ALIBABA_CLOUD_REGION_ID")
+				mustUnsetEnv(t, "ALIBABA_CLOUD_REGION_ID")
 			}
 
 			result := getEndpoint()
 			assert.Equal(t, tt.expectedResult, result)
 		})
 	}
+}
+
+func mustSetEnv(t *testing.T, key, value string) {
+	t.Helper()
+	require.NoError(t, os.Setenv(key, value))
+}
+
+func mustUnsetEnv(t *testing.T, key string) {
+	t.Helper()
+	require.NoError(t, os.Unsetenv(key))
 }

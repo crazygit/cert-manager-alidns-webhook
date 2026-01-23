@@ -24,6 +24,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
 # Final stage
 FROM alpine:3.23
 
+# hadolint ignore=DL3018
 RUN apk add --no-cache ca-certificates tzdata && \
     addgroup -g 1000 cert-manager && \
     adduser -u 1000 -G cert-manager -D -h /home/cert-manager cert-manager

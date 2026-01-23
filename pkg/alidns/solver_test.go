@@ -216,3 +216,50 @@ func TestSolver_CleanUp_Uninitialized(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "not initialized")
 }
+
+func TestExtractDomainAndRR_Punycode(t *testing.T) {
+	solver := &Solver{}
+
+	tests := []struct {
+		name         string
+		fqdn         string
+		zone         string
+		expectDomain string
+		expectRR     string
+	}{
+		{
+			name:         "punycode zone",
+			fqdn:         "_acme-challenge.xn--fiq228c.com.",
+			zone:         "xn--fiq228c.com.",
+			expectDomain: "中文.com",
+			expectRR:     "_acme-challenge",
+		},
+		{
+			name:         "punycode subdomain",
+			fqdn:         "_acme-challenge.xn--0zwm56d.xn--fiq228c.com.",
+			zone:         "xn--fiq228c.com.",
+			expectDomain: "中文.com",
+			expectRR:     "_acme-challenge.测试",
+		},
+		{
+			name: "mixed punycode and unicode (should fail splitting if mismatch)",
+			fqdn: "_acme-challenge.中文.com.",
+			zone: "xn--fiq228c.com.",
+			// Mismatch causes split failure, so RR is full FQDN.
+			// zone "xn--fiq228c.com." -> "中文.com"
+			// fqdn "_acme-challenge.中文.com."
+			// rr = fqdn (since suffix doesn't match string-wise)
+			// rr -> ToUnicode("_acme-challenge.中文.com.") -> "_acme-challenge.中文.com"
+			expectDomain: "中文.com",
+			expectRR:     "_acme-challenge.中文.com",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			domain, rr := solver.extractDomainAndRR(tt.fqdn, tt.zone)
+			assert.Equal(t, tt.expectDomain, domain, "Domain mismatch")
+			assert.Equal(t, tt.expectRR, rr, "RR mismatch")
+		})
+	}
+}
