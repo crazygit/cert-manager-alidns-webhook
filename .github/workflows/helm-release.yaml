@@ -33,7 +33,8 @@ jobs:
       - name: Package Helm Chart
         run: |
           cd deploy/cert-manager-alidns-webhook
-          helm package .
+          VERSION=${GITHUB_REF_NAME#v}
+          helm package . --version "${VERSION}" --app-version "${VERSION}"
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3

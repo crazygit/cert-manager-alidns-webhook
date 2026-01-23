@@ -269,7 +269,7 @@ kubectl delete configmap aliyun-config
 | :------------------------------------ | :---------------------------- | :------------------------------------- |
 | `groupName`                           | API 组名                      | `alidns.crazygit.github.io`            |
 | `image.repository`                    | 镜像仓库                      | `crazygit/cert-manager-alidns-webhook` |
-| `image.tag`                           | 镜像标签                      | `latest`                               |
+| `image.tag`                           | 镜像标签                      | `""`（默认使用 chart 的 appVersion） |
 | `replicaCount`                        | 副本数                        | `1`                                    |
 | `aliyunAuth.regionID`                 | 阿里云区域 ID                 | `""`                                   |
 | `aliyunAuth.accessKeyID`              | AccessKey ID                  | `""`                                   |

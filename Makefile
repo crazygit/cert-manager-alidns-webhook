@@ -50,6 +50,10 @@ clean:
 build:
 	docker build -t "$(IMAGE_NAME):$(IMAGE_TAG)" .
 
+.PHONY: release
+release:
+	./scripts/release.sh $(VERSION)
+
 .PHONY: rendered-manifest.yaml
 rendered-manifest.yaml: $(OUT)/rendered-manifest.yaml
 

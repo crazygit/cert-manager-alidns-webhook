@@ -68,9 +68,20 @@ jobs:
         run: |
           helm lint deploy/cert-manager-alidns-webhook
 
+  version-check:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check release version sync
+        run: ./scripts/check-version.sh
+
   docker-release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [test, helm-lint]
+    needs: [test, helm-lint, version-check]
     uses: ./.github/workflows/docker-release.yaml
     secrets: inherit
     permissions:
@@ -80,7 +91,7 @@ jobs:
 
   helm-release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [test, helm-lint]
+    needs: [test, helm-lint, version-check]
     uses: ./.github/workflows/helm-release.yaml
     secrets: inherit
     permissions:

@@ -270,7 +270,7 @@ kubectl delete configmap aliyun-config
 | :------------------------------------ | :------------------------- | :------------------------------------- |
 | `groupName`                           | API group name             | `alidns.crazygit.github.io`            |
 | `image.repository`                    | Image repository           | `crazygit/cert-manager-alidns-webhook` |
-| `image.tag`                           | Image tag                  | `latest`                               |
+| `image.tag`                           | Image tag                  | `""` (defaults to chart appVersion)   |
 | `replicaCount`                        | Replica count              | `1`                                    |
 | `aliyunAuth.regionID`                 | Alibaba Cloud region ID    | `""`                                   |
 | `aliyunAuth.accessKeyID`              | AccessKey ID               | `""`                                   |

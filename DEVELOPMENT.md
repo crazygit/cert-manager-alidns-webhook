@@ -13,6 +13,7 @@
 - [开发环境](#开发环境)
 - [故障排查](#故障排查)
 - [测试指南](#测试指南)
+- [发布流程](#发布流程)
 - [参考资源](#参考资源)
 
 ---
@@ -348,6 +349,39 @@ Makefile 会检查 `TEST_ZONE_NAME` 是否设置并校验格式（必须以点�
 ```bash
 make test-all
 ```
+
+---
+
+## 发布流程
+
+发布使用 Git tag 作为唯一版本源，Chart 版本、appVersion 和镜像标签保持一致。
+
+### 版本约定
+
+- Git tag: `vX.Y.Z`
+- Helm chart: `version: X.Y.Z`
+- Helm chart: `appVersion: X.Y.Z`
+- Docker image tag: `X.Y.Z`
+
+### 发布步骤
+
+```bash
+# 1. 更新 Chart.yaml version/appVersion
+make release VERSION=0.1.3
+
+# 2. 提交变更
+git add deploy/cert-manager-alidns-webhook/Chart.yaml
+git commit -m "release: v0.1.3"
+
+# 3. 打 tag 并推送
+git tag -a v0.1.3 -m "release: v0.1.3"
+git push --follow-tags
+```
+
+### 校验说明
+
+- `scripts/check-version.sh` 会确保 tag 与 `Chart.yaml` 的 `version/appVersion` 完全一致
+- CI 在 tag 触发时强制执行校验，不一致会阻止发布
 
 ---
 
