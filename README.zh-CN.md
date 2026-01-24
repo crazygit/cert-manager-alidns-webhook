@@ -128,7 +128,7 @@ RRSA (RAM Roles for Service Accounts) 是在 ACK（阿里云 Kubernetes）上生
 
 ```bash
 # 使用 Helm 安装 webhook
-helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook \
+helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/charts/cert-manager-alidns-webhook \
   --set aliyunAuth.rrsa.enabled=true \
   --set aliyunAuth.roleName=<YOUR_ROLE_NAME>
 ```
@@ -164,7 +164,7 @@ helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert
 
 ```bash
 # 直接传值
-helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook \
+helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/charts/cert-manager-alidns-webhook \
   --set aliyunAuth.accessKeyID=<YOUR_ACCESS_KEY_ID> \
   --set aliyunAuth.accessKeySecret=<YOUR_ACCESS_KEY_SECRET>
 
@@ -174,7 +174,7 @@ kubectl create secret generic alidns-credentials \
   --from-literal=accessKeyID=<YOUR_ACCESS_KEY_ID> \
   --from-literal=accessKeySecret=<YOUR_ACCESS_KEY_SECRET>
 
-helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook \
+helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/charts/cert-manager-alidns-webhook \
   --set aliyunAuth.existingSecret=alidns-credentials
 ```
 
@@ -183,7 +183,7 @@ helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert
 如果你的 Kubernetes 集群运行在阿里云 ECS 上，并且已分配实例 RAM 角色并为该角色绑定了[所需的权限](#为-rrsa-角色授权)，无需额外认证配置：
 
 ```bash
-helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook
+helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/charts/cert-manager-alidns-webhook
 ```
 
 ### 方式四：使用 config.json 文件
@@ -196,7 +196,7 @@ kubectl create configmap aliyun-config \
   --from-file=config.json=/path/to/.aliyun/config.json
 
 # 使用 Helm 安装 webhook
-helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook \
+helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/charts/cert-manager-alidns-webhook \
   --set aliyunAuth.configJSON.enabled=true \
   --set aliyunAuth.configJSON.configMapName=aliyun-config
 ```

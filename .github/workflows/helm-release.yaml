@@ -45,4 +45,4 @@ jobs:
 
       - name: Push Helm Chart to GHCR
         run: |
-          helm push deploy/cert-manager-alidns-webhook/*.tgz oci://ghcr.io/crazygit/helm-charts
+          helm push deploy/cert-manager-alidns-webhook/*.tgz oci://ghcr.io/crazygit/charts

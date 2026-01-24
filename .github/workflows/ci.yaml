@@ -123,7 +123,7 @@ jobs:
             ## Helm Chart
 
             ```bash
-            helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook \
+            helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/charts/cert-manager-alidns-webhook \
               --version ${{ steps.version.outputs.version }}
             ```
         env:

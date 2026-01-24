@@ -130,7 +130,7 @@ If you're unsure whether these conditions are met, refer to the documentation to
 
 ```bash
 # Install webhook using Helm
-helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook \
+helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/charts/cert-manager-alidns-webhook \
   --set aliyunAuth.rrsa.enabled=true \
   --set aliyunAuth.rrsa.roleName=<YOUR_ROLE_NAME>
 ```
@@ -166,7 +166,7 @@ Please replace `<YOUR_ROLE_NAME>` with your RAM role name. Ensure the role has A
 
 ```bash
 # Method 1: Direct values
-helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook \
+helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/charts/cert-manager-alidns-webhook \
   --set aliyunAuth.accessKeyID=<YOUR_ACCESS_KEY_ID> \
   --set aliyunAuth.accessKeySecret=<YOUR_ACCESS_KEY_SECRET>
 
@@ -175,7 +175,7 @@ kubectl create secret generic alidns-credentials \
   --from-literal=accessKeyID=<YOUR_ACCESS_KEY_ID> \
   --from-literal=accessKeySecret=<YOUR_ACCESS_KEY_SECRET>
 
-helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook \
+helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/charts/cert-manager-alidns-webhook \
   --set aliyunAuth.existingSecret=alidns-credentials
 ```
 
@@ -184,7 +184,7 @@ helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert
 If your Kubernetes cluster runs on Alibaba Cloud ECS with an instance RAM role assigned and the [required permissions](#authorize-rrsa-role) bound to that role, no additional authentication configuration is needed:
 
 ```bash
-helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook
+helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/charts/cert-manager-alidns-webhook
 ```
 
 ### Method 4: Using config.json File
@@ -197,7 +197,7 @@ kubectl create configmap aliyun-config \
   --from-file=config.json=/path/to/.aliyun/config.json
 
 # 2. Install webhook using Helm
-helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/helm-charts/cert-manager-alidns-webhook \
+helm install cert-manager-alidns-webhook oci://ghcr.io/crazygit/charts/cert-manager-alidns-webhook \
   --set aliyunAuth.configJSON.enabled=true \
   --set aliyunAuth.configJSON.configMapName=aliyun-config
 ```
